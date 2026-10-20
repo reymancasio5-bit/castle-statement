@@ -17,11 +17,11 @@ for(const mode of ['gross','net'])test(`finance to saved draft to preview/PDF/CS
  assert.ok(csv(t).includes(mode==='gross'?'"managementTax","22.4625"':'"managementTax","20.21625"'));
  assert.ok(new TextDecoder().decode(makePdf(t,s.config)).startsWith('%PDF-1.4'));
 });
-test('missing Hostaway finance remains unknown through import, rather than silently zero',()=>{
+test('missing Hostaway tax defaults to zero at the app import boundary',()=>{
  const fresh=fetched([{name:'airbnbPayoutSum',total:1100}]);
  assert.equal(fresh.tax,null);
  const s={config:{...defaults,listingId:'101'},reservations:[mergeReservation(fresh)],entries:[]};
- assert.throws(()=>calculate(buildRows(s),s.config),/Pass-through tax.*123.*missing/);
+ assert.equal(calculate(buildRows(s),s.config).tax,0n);
 });
 test('all extra entry kinds generate preview and exports with three-decimal expense tax',()=>{
  const entries=['eci','late','parking','resolution','claim','expense'].map((kind,i)=>({id:String(i),kind,guest:'Fixture '+kind,receipts:'20.00',tax:'0',entryDate:'2026-09-10',checkIn:'2026-08-01',checkOut:'2026-08-02',expenseTax:'14.975',castlePercent:'33.333'}));

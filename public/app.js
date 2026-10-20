@@ -1,8 +1,8 @@
-import {webhookHeaders} from './connection.js?v=validation-3';
-import {mergeReservation,restoreDraft} from './drafts.js?v=validation-3';
-import {makePdf,loadPdfLogo} from './pdf.js?v=validation-3';
-import {defaults,bounds,buildRows,calculate,format,csv,escape as e,validDate,money} from './engine.js?v=validation-3';
-import {renderStatement} from './render.js?v=validation-3';
+import {webhookHeaders} from './connection.js?v=missing-tax-4';
+import {mergeReservation,restoreDraft} from './drafts.js?v=missing-tax-4';
+import {makePdf,loadPdfLogo} from './pdf.js?v=missing-tax-4';
+import {defaults,bounds,buildRows,calculate,format,csv,escape as e,validDate,money} from './engine.js?v=missing-tax-4';
+import {renderStatement} from './render.js?v=missing-tax-4';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const previous=new Date();previous.setUTCDate(1);previous.setUTCMonth(previous.getUTCMonth()-1);
 let state={version:1,config:{...defaults,month:previous.toISOString().slice(0,7),cleaningChanges:[]},reservations:[],entries:[],source:''},totals=null,editing=null;
@@ -21,7 +21,7 @@ function renderEntries(){const month=state.config.month;const entries=state.entr
 function refresh(){setConfig();renderChanges();renderReservations();renderEntries();update();}
 for(const el of $$('[data-config]'))el.addEventListener('change',()=>{state.config[el.dataset.config]=el.dataset.config==='currency'?el.value.toUpperCase():el.value;update();});
 $('#month').addEventListener('change',()=>{state.config.month=$('#month').value;renderReservations();renderEntries();update();});
-$('#listingId').addEventListener('change',()=>{const id=$('#listingId').value.trim();if(!/^\d+$/.test(id))return;save();const month=$('#month').value;try{const stored=localStorage.getItem(storageKey(id));state=stored?JSON.parse(stored):{version:1,config:{...defaults,listingId:id,month,cleaningChanges:[]},reservations:[],entries:[],source:''};state.config.month=month;refresh();}catch(err){notice('Unable to load this listing draft: '+err.message,true);}});
+$('#listingId').addEventListener('change',()=>{const id=$('#listingId').value.trim();if(!/^\d+$/.test(id))return;save();const month=$('#month').value;try{const stored=localStorage.getItem(storageKey(id));state=stored?restoreDraft(stored):{version:1,config:{...defaults,listingId:id,month,cleaningChanges:[]},reservations:[],entries:[],source:''};state.config.month=month;refresh();}catch(err){notice('Unable to load this listing draft: '+err.message,true);}});
 $('#cleaning-changes').addEventListener('change',ev=>{const el=ev.target;if(el.dataset.change!=null){state.config.cleaningChanges[Number(el.dataset.change)][el.dataset.field]=el.value;update();}});
 $('#cleaning-changes').addEventListener('click',ev=>{const el=ev.target.closest('[data-remove-change]');if(el){state.config.cleaningChanges.splice(Number(el.dataset.removeChange),1);renderChanges();update();}});
 $('#add-change').onclick=()=>{state.config.cleaningChanges.push({date:state.config.month+'-01',amount:85,payer:state.config.cleaningPayer});renderChanges();update();};
