@@ -1,8 +1,9 @@
-import {webhookHeaders} from './connection.js?v=cancelled-payout-5';
-import {mergeReservation,restoreDraft} from './drafts.js?v=cancelled-payout-5';
-import {makePdf,loadPdfLogo} from './pdf.js?v=cancelled-payout-5';
-import {defaults,bounds,buildRows,calculate,format,csv,escape as e,validDate,money} from './engine.js?v=cancelled-payout-5';
-import {renderStatement} from './render.js?v=cancelled-payout-5';
+import {webhookHeaders} from './connection.js?v=chinese-pdf-6';
+import {mergeReservation,restoreDraft} from './drafts.js?v=chinese-pdf-6';
+import {preparePdfFont} from './pdf-font.js?v=chinese-pdf-6';
+import {makePdf,loadPdfLogo} from './pdf.js?v=chinese-pdf-6';
+import {defaults,bounds,buildRows,calculate,format,csv,escape as e,validDate,money} from './engine.js?v=chinese-pdf-6';
+import {renderStatement} from './render.js?v=chinese-pdf-6';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const previous=new Date();previous.setUTCDate(1);previous.setUTCMonth(previous.getUTCMonth()-1);
 let state={version:1,config:{...defaults,month:previous.toISOString().slice(0,7),cleaningChanges:[]},reservations:[],entries:[],source:''},totals=null,editing=null;
@@ -29,7 +30,7 @@ $('#reservations').addEventListener('click',ev=>{const reset=ev.target.closest('
 $('#reservations').addEventListener('change',ev=>{const el=ev.target,r=state.reservations.find(x=>String(x.id)===el.dataset.res);if(r){r[el.dataset.field]=el.dataset.field==='castlePercent'&&el.value===''?null:el.value;if(['receipts','tax'].includes(el.dataset.field))r.manualFields=[...new Set([...(r.manualFields||[]),el.dataset.field])];renderReservations();update();}});
 function download(content,name,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('#csv').onclick=()=>{if(totals)download(csv(totals),`owner-statement-${state.config.listingId}-${state.config.month}.csv`,'text/csv;charset=utf-8');};
-$('#pdf').onclick=async()=>{if(!totals)return;try{const snapshot=totals,config={...state.config};const logo=await loadPdfLogo();download(makePdf(snapshot,config,logo),`owner-statement-${config.listingId}-${config.month}.pdf`,'application/pdf');}catch(err){notice('PDF export failed: '+err.message,true);}};
+$('#pdf').onclick=async()=>{if(!totals)return;try{const snapshot=totals,config={...state.config};const [logo,font]=await Promise.all([loadPdfLogo(),preparePdfFont(snapshot,config)]);download(makePdf(snapshot,config,logo,font),`owner-statement-${config.listingId}-${config.month}.pdf`,'application/pdf');}catch(err){notice('PDF export failed: '+err.message,true);}};
 $('#backup').onclick=()=>download(JSON.stringify(state,null,2),`statement-draft-${state.config.listingId||'new'}.json`,'application/json');
 $('#restore').onchange=async ev=>{try{const file=ev.target.files[0];if(!file)return;const data=restoreDraft(await file.text());if(!confirm('Replace the current workspace with this draft?'))return;state=data;refresh();notice('Draft restored.');}catch(err){notice(err.message,true);}ev.target.value='';};
 $('#webhook').value=localStorage.getItem('castle-webhook-url')||'';$('#origin').textContent=location.origin;

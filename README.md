@@ -1,6 +1,6 @@
 # Castle Statement Studio
 
-A static owner-statement app for GitHub Pages, connected to your own n8n through an authenticated webhook. No build step or npm dependencies. Hostaway credentials stay in n8n. The website never writes to Hostaway.
+A static owner-statement app for GitHub Pages, connected to your own n8n through an authenticated webhook. No build step or npm install required. Hostaway credentials stay in n8n. The website never writes to Hostaway.
 
 ## Publish on GitHub Pages
 
@@ -98,7 +98,7 @@ npm test
 
 Tests cover original workbook precision, gross/net formulas, split receipts, dated payer changes, long-stay month selection, merged/separate extras, claims, missing-input failures, PDF structure, and n8n request/pagination handling.
 
-The UI demo and rendered PDF have been inspected. The user's authenticated n8n/Hostaway connection and GitHub deployment have not been executed here. Browser automation could read the app but interaction commands timed out, so end-to-end editing/download clicks have not been fully automated. PDF generation and CSV generation are tested as local functions. The bundled PDF fonts support Latin/Western European characters, including French accents; other scripts may need a font-enabled export extension.
+The UI demo and rendered PDF have been inspected. The user's authenticated n8n/Hostaway connection and GitHub deployment have not been executed here. Browser automation could read the app but interaction commands timed out, so end-to-end editing/download clicks have not been fully automated. PDF generation and CSV generation are tested as local functions. PDF exports support Chinese owner and guest names, including 刘瑞霞, using a bundled Noto Sans SC font embedded in each Chinese-containing PDF. The font loads from the same website only when needed; there is no external font service. Chinese PDFs are larger because the complete font is embedded and compressed for reliable rendering. Western-only exports keep the small built-in fonts. Unsupported characters produce an explicit export error instead of silently becoming question marks. Font/library attribution is included under public/fonts and public/vendor.
 
 ## Official references
 
