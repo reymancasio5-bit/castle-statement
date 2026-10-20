@@ -1,8 +1,8 @@
-import {webhookHeaders} from './connection.js';
-import {mergeReservation,restoreDraft} from './drafts.js';
-import {makePdf,loadPdfLogo} from './pdf.js';
-import {defaults,bounds,buildRows,calculate,format,csv,escape as e,validDate,money} from './engine.js';
-import {renderStatement} from './render.js';
+import {webhookHeaders} from './connection.js?v=validation-3';
+import {mergeReservation,restoreDraft} from './drafts.js?v=validation-3';
+import {makePdf,loadPdfLogo} from './pdf.js?v=validation-3';
+import {defaults,bounds,buildRows,calculate,format,csv,escape as e,validDate,money} from './engine.js?v=validation-3';
+import {renderStatement} from './render.js?v=validation-3';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const previous=new Date();previous.setUTCDate(1);previous.setUTCMonth(previous.getUTCMonth()-1);
 let state={version:1,config:{...defaults,month:previous.toISOString().slice(0,7),cleaningChanges:[]},reservations:[],entries:[],source:''},totals=null,editing=null;
