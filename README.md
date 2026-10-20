@@ -49,7 +49,7 @@ These dates/amounts are entered manually because the user confirmed they current
 
 ### Reconciliation and extras
 
-For Airbnb, the bridge maps `airbnbPayoutSum` to receipts and `airbnbPassThroughTax` to pass-through tax. Missing finance fields remain blank, requiring explicit entry. Other channels need manual receipt/tax reconciliation; they are not inferred from guest totals. Guest `cleaningFee` is not used as actual cleaning cost.
+For Airbnb, the bridge maps `airbnbPayoutSum` to receipts and `airbnbPassThroughTax` to pass-through tax. The app defaults absent or blank Hostaway pass-through tax to zero when fetching or restoring a draft, preserving explicit user overrides. Missing payout amounts still require explicit entry. Other channels need receipt reconciliation; receipts are not inferred from guest totals. Guest `cleaningFee` is not used as actual cleaning cost.
 
 `reservationExpensesAndExtras` is shown as a reminder when nonzero, but is not automatically added: the aggregate can mix expenses and income. Enter only extras **not already in the receipt**. Do not add the same Airbnb resolution as both a merged extra and a claim. Each entry has its own ID and can be edited or removed.
 
