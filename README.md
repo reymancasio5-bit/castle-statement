@@ -29,7 +29,7 @@ Do not put the Hostaway API secret into the website. The webhook secret is a sep
 
 ## Use the statement
 
-- Search by listing ID only, then select a month. The bridge fetches stays overlapping that month, including long stays that have not checked out yet. Only `new` and `modified` reservations are included; cancelled bookings need explicit manual adjustments if they generated income.
+- Search by listing ID only, then select a month. The bridge fetches stays overlapping that month, including long stays that have not checked out yet. Includes `new` and `modified` reservations, plus `cancelled` reservations with a positive Hostaway payout. Cancelled reservations always have zero Castle-paid and owner-paid cleaning, including linked monthly payments, regardless of cleaning overrides. Newly imported cancelled bookings default to checkout-month recognition even for long scheduled stays; existing recognition choices are preserved. Cancelled bookings with zero, negative, or missing payouts are excluded.
 - Stays of 28 nights or longer default to **Monthly payments**. You can change recognition per reservation to Checkout month, Monthly payments, or Exclude.
 - Set the management fee method, fee percentage, tax percentage, cleaning tax, base cleaning cost, and cleaning payer. Add dated cleaning changes; they apply **on and after the checkout date**, in date order.
 - A blank reservation cleaning override uses the rule. `0` means no cleaning. A booking override can also change the payer and Castle payout share.

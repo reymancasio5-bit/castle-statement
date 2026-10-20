@@ -1,4 +1,4 @@
-import {format,escape as e,bounds} from './engine.js?v=missing-tax-4';
+import {format,escape as e,bounds} from './engine.js?v=cancelled-payout-5';
 export function renderStatement(t,c){const cash=n=>e(c.currency)+' '+format(n);const table=(headers,rows,cls='')=>`<table class="${cls}"><thead><tr>${headers.map(x=>`<th>${e(x)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;const tr=(cells,cls='')=>`<tr class="${cls}">${cells.map(x=>`<td>${x}</td>`).join('')}</tr>`;const {start,end}=bounds(c.month);
  const rows=t.rows.filter(r=>r.kind!=='expense').map(r=>tr([e(r.checkIn),e(r.checkOut),e(r.guest)+(r.kind==='payment'?'<small>Payment '+e(r.entryDate)+'</small>':'')+(r.additions?.length?'<small>'+e(r.additions.map(a=>a.kind).join(', '))+'</small>':''),r.kind==='claim'?'<mark>airbnb-claim</mark>':e(r.channel)+(r.kind!=='reservation'&&r.kind!=='payment'?'<small>'+e(r.kind)+'</small>':''),...[r.payout,r.passTax,r.castle,r.owner,r.castleCleaning,r.ownerCleaning].map(format)],r.kind==='claim'?'claim':''));
  rows.push(tr(['Total','','','',...[t.payout,t.tax,t.castle,t.owner,t.cleaning,t.ownerCleaning].map(format)],'total'));
