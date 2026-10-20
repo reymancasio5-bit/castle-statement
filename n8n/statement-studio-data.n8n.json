@@ -1,0 +1,378 @@
+{
+  "name": "Castle Statement Studio - Hostaway data",
+  "nodes": [
+    {
+      "name": "Statement data",
+      "id": "f4b9cc6a-e19f-449e-b89a-4d718d0c4ded",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "owner-statement-data",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://reymancasio5-bit.github.io,http://127.0.0.1:4173"
+        }
+      },
+      "webhookId": "2fa34964-c1cc-492c-af0c-a043f67c6388",
+      "notes": "Set Header Auth credential name X-Statement-Key with a strong random value. Set Allowed Origins to https://YOUR-GITHUB-USERNAME.github.io (origin only; no repository path)."
+    },
+    {
+      "name": "Validate request",
+      "id": "6cbfef83-18d5-4b77-8bad-f7eaec8e4c84",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const q=$input.first().json.query||{};\nif(!/^\\d+$/.test(String(q.listingId||''))||!Number.isSafeInteger(Number(q.listingId))||Number(q.listingId)<=0)throw new Error('A positive numeric listingId is required.');\nif(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(q.month||''))throw new Error('month must be YYYY-MM.');\nconst [y,m]=q.month.split('-').map(Number);\nreturn [{json:{listingId:String(q.listingId),month:q.month,startDate:q.month+'-01',endDate:q.month+'-'+new Date(Date.UTC(y,m,0)).getUTCDate()}}];\r\n"
+      }
+    },
+    {
+      "name": "Fetch reservation pages",
+      "id": "2b436088-5981-4819-ba26-a2a4809d850f",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.hostaway.com/v1/reservations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "listingId",
+              "value": "={{ $json.listingId }}"
+            },
+            {
+              "name": "arrivalEndDate",
+              "value": "={{ $json.endDate }}"
+            },
+            {
+              "name": "departureStartDate",
+              "value": "={{ $json.startDate }}"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "includeResources",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ \"https://api.hostaway.com/v1/reservations\" + ($pageCount === 0 ? \"\" : \"?afterId=\" + $response.body.result[$response.body.result.length - 1].id) }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ $response.body.status !== \"success\" || !Array.isArray($response.body.result) || $response.body.result.length === 0 }}",
+              "limitPagesFetched": true,
+              "maxRequests": 100,
+              "requestInterval": 600
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "name": "Collect reservations",
+      "id": "d84f2352-ae0d-4c66-b546-a485fd1303d3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const request=$('Validate request').first().json,pages=$input.all().map(x=>x.json);\nif(!pages.length||pages.some(p=>p.status!=='success'||!Array.isArray(p.result)))throw new Error('Invalid reservation API response.');\nif(pages.at(-1).result.length!==0)throw new Error('Pagination limit reached; incomplete results rejected.');\nconst reservations=[],seen=new Set();\nfor(const r of pages.flatMap(p=>p.result)){\n if(String(r.listingMapId)!==request.listingId)throw new Error('Hostaway returned a different listing.');\n if(seen.has(String(r.id)))continue;seen.add(String(r.id));\n if(!['new','modified'].includes(r.status))continue;\n const a=String(r.arrivalDate||'').slice(0,10),d=String(r.departureDate||'').slice(0,10);\n if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(a)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))throw new Error('Missing reservation dates for '+r.id);\n if(a<=request.endDate&&d>=request.startDate)reservations.push(r);\n}\nreturn [{json:{...request,reservations}}];\r\n"
+      }
+    },
+    {
+      "name": "Has reservations",
+      "id": "331cb67e-17ab-49e2-993c-569347ee1d1d",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a77e28e4-4f7e-45db-bc2d-1ee72d90af07",
+              "leftValue": "={{ $json.reservations.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Reservation items",
+      "id": "0b8c0170-8d40-45a9-9874-2d1ddff97ab3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        100
+      ],
+      "parameters": {
+        "jsCode": "return $input.first().json.reservations.map(r=>({json:r,pairedItem:{item:0}}));"
+      }
+    },
+    {
+      "name": "Fetch finance",
+      "id": "b321ffe6-6c42-407f-93c6-69593f0b33fb",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.hostaway.com/v1/financeField/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 600
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "name": "Normalize response",
+      "id": "63a7a00f-f6e0-426e-a8ce-f724d8ee1944",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const request=$('Collect reservations').first().json;\nconst reservations=$input.all().map((item,i)=>{\n const r=$('Reservation items').itemMatching(i).json,p=item.json;\n if(p.status!=='success'||!Array.isArray(p.result))throw new Error('Invalid finance response for '+r.id);\n const fields=new Map();for(const f of p.result){if(Number(f.isDeleted)===1)continue;if(fields.has(f.name))throw new Error('Duplicate finance field '+f.name+' for '+r.id);fields.set(f.name,f);}\n const value=name=>{const v=fields.get(name)?.total;if(v==null||v===''||!Number.isFinite(Number(v)))return null;return Number(v);};\n // Missing fields stay null so the user can reconcile unsupported channels explicitly.\n return {id:String(r.id),listingId:String(r.listingMapId),guest:r.guestName||[r.guestFirstName,r.guestLastName].filter(Boolean).join(' ')||'Reservation '+r.id,checkIn:String(r.arrivalDate).slice(0,10),checkOut:String(r.departureDate).slice(0,10),channel:r.channelName||String(r.channelId),currency:r.currency,receipts:value('airbnbPayoutSum'),tax:value('airbnbPassThroughTax'),sourceExtras:value('reservationExpensesAndExtras'),source:'Hostaway finance',fetchedAt:new Date().toISOString()};\n});\nif(reservations.length!==request.reservations.length||new Set(reservations.map(r=>r.id)).size!==reservations.length)throw new Error('Missing or duplicate finance results.');\nreturn [{json:{schemaVersion:1,listingId:request.listingId,month:request.month,property:request.reservations[0]?.listingName||'',reservations}}];\r\n"
+      }
+    },
+    {
+      "name": "Empty response",
+      "id": "07471f17-bef4-4d8a-a3fb-c16a270abb3e",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        350
+      ],
+      "parameters": {
+        "jsCode": "const q=$('Validate request').first().json;return [{json:{schemaVersion:1,listingId:q.listingId,month:q.month,property:'',reservations:[]}}];"
+      }
+    },
+    {
+      "name": "Return data",
+      "id": "952a136e-4377-4df9-96be-0bcc5413072e",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1920,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "Setup",
+      "id": "1b2b96dc-4e92-40b5-ab38-77c7ebfd08e8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        -200
+      ],
+      "parameters": {
+        "width": 870,
+        "height": 310,
+        "content": "## Statement Studio data bridge\n1. Webhook: Header Auth credential, name X-Statement-Key. Match its value in the website.\n2. Webhook Allowed Origins: your GitHub Pages origin (no repo path), or http://127.0.0.1:4173 for local testing.\n3. Select Hostaway OAuth2 credentials on BOTH HTTP nodes (client credentials, token URL https://api.hostaway.com/v1/accessTokens, scope general, authentication Body).\n4. Publish/activate, copy PRODUCTION webhook URL into website.\n\nGET only to Hostaway. Checkout + overlapping stays retrieved; cancelled bookings excluded. Manual monthly Airbnb payments belong in the app, not these lifetime finance totals. No guest contact/payment-card data returned."
+      }
+    }
+  ],
+  "connections": {
+    "Statement data": {
+      "main": [
+        [
+          {
+            "node": "Validate request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate request": {
+      "main": [
+        [
+          {
+            "node": "Fetch reservation pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch reservation pages": {
+      "main": [
+        [
+          {
+            "node": "Collect reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect reservations": {
+      "main": [
+        [
+          {
+            "node": "Has reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has reservations": {
+      "main": [
+        [
+          {
+            "node": "Reservation items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservation items": {
+      "main": [
+        [
+          {
+            "node": "Fetch finance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch finance": {
+      "main": [
+        [
+          {
+            "node": "Normalize response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize response": {
+      "main": [
+        [
+          {
+            "node": "Return data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty response": {
+      "main": [
+        [
+          {
+            "node": "Return data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "versionId": "527a0f24-e99a-4c23-94cb-447e0084258e"
+}
