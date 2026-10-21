@@ -1,5 +1,5 @@
-import {format,bounds} from './engine.js?v=chinese-pdf-6';
-import {needsPdfFont,embedPdfFont} from './pdf-font.js?v=chinese-pdf-6';
+import {format,bounds} from './engine.js?v=manual-reservation-7';
+import {needsPdfFont,embedPdfFont} from './pdf-font.js?v=manual-reservation-7';
 // WinAnsi for Western text; embedded Noto Sans SC for Chinese text.
 const win={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159};
 const hex=s=>[...String(s??'')].map(c=>(win[c]??(c.codePointAt(0)<=255?c.codePointAt(0):63)).toString(16).padStart(2,'0')).join('');
